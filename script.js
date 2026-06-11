@@ -1,10 +1,14 @@
-const tasksList = [
+/* ================= LÓGICA DE METAS PERSONALIZÁVEIS ================= */
+const defaultTasks = [
     { id: 'oracao', name: 'Tempo para oração' },
     { id: 'palavra', name: 'Leitura da Palavra' },
-    { id: 'anotar', name: 'Anotações' },
+    { id: 'anotar', name: 'Anotação' },
     { id: 'renuncia', name: 'Renúncia / Sacrifício' },
     { id: 'intercessao', name: 'Intercessão pelo congresso' }
 ];
+
+let tasksList = JSON.parse(localStorage.getItem('jejumCustomTasks')) || defaultTasks;
+let totalTasks = 25 * tasksList.length;
 
 const weeksConfig = [
     { title: 'SEMANA 1', startDay: 1, endDay: 7 },
@@ -13,93 +17,71 @@ const weeksConfig = [
     { title: 'SEMANA 4 (RETA FINAL)', startDay: 22, endDay: 25 }
 ];
 
-// Lista de versículos para o painel (muda a cada dia ou recarregamento)
-const verses = [
-    { text: "Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos.", ref: "Provérbios 16:3" },
-    { text: "Busquem, pois, em primeiro lugar o Reino de Deus e a sua justiça, e todas essas coisas lhes serão acrescentadas.", ref: "Mateus 6:33" },
-    { text: "Tudo posso naquele que me fortalece.", ref: "Filipenses 4:13" },
-    { text: "Deleite-se no Senhor, e ele atenderá aos desejos do seu coração.", ref: "Salmos 37:4" },
-    { text: "Seja forte e corajoso! Não tenha medo nem fique apavorado, pois o Senhor, o seu Deus, estará com você por onde andar.", ref: "Josué 1:9" },
-    { text: "Arrependam-se, pois, e voltem-se para Deus, para que os seus pecados sejam apagados, para que venham tempos de refrigério da parte do Senhor.", ref: "Atos 3:19" },
-    { text: "Cria em mim, ó Deus, um coração puro, e renova dentro de mim um espírito inabalável.", ref: "Salmo 51:10" },
-    { text: "Agora, pois, diz o Senhor, voltem-se para mim de todo o coração, com jejum, choro e pranto. Rasguem o coração, e não as vestes.", ref: "Joel 2:12-13" },
-    { text: "Por isso é que foi dito: Desperta, ó tu que dormes, levanta-te dentre os mortos e Cristo resplandecerá sobre ti.", ref: "SEfésios 5:14" },
-    { text: "se o meu povo, que se chama pelo meu nome, se humilhar e orar, buscar a minha face e se afastar dos seus maus caminhos, dos céus o ouvirei, perdoarei o seu pecado e curarei a sua terra.", ref: "2 Crônicas 7:14" },
-    { text: "O Senhor é a minha força e o meu escudo; nele o meu coração confia.", ref: "Salmos 28:7" }
-];
-
-const totalTasks = 25 * tasksList.length;
-const container = document.getElementById('weeks-container');
-
-function loadProgress() {
-    const saved = localStorage.getItem('jejumProgresso');
-    return saved ? JSON.parse(saved) : {};
+function loadProgress() { 
+    return JSON.parse(localStorage.getItem('jejumProgresso')) || {}; 
 }
 
-function saveProgress(data) {
-    localStorage.setItem('jejumProgresso', JSON.stringify(data));
-    updateDashboard(data);
+function saveProgress(data) { 
+    localStorage.setItem('jejumProgresso', JSON.stringify(data)); 
+    updateDashboard(data); 
 }
 
-// Atualiza o Dashboard do topo
+/* ================= FUNÇÕES DO DASHBOARD E CARTÕES ================= */
 function updateDashboard(data) {
-    // 1. Calcular Progresso Geral
-    const completedTasks = Object.keys(data).filter(key => data[key] === true).length;
-    const percentage = Math.round((completedTasks / totalTasks) * 100);
-    
-    document.getElementById('global-percent').innerText = percentage + '%';
-    document.getElementById('global-bar').style.width = percentage + '%';
-    document.getElementById('global-text').innerText = `${completedTasks} de 125 atividades`;
+    const percentEl = document.getElementById('global-percent');
+    if (!percentEl) return; 
 
-    // 2. Calcular Dias Completos
+    let completedTasks = 0;
+    for (let i = 1; i <= 25; i++) {
+        tasksList.forEach(t => {
+            if (data[`d${i}-${t.id}`]) completedTasks++;
+        });
+    }
+
+    const percentage = Math.round((completedTasks / totalTasks) * 100) || 0;
+    percentEl.innerText = percentage + '%';
+    
+    document.getElementById('global-bar').style.width = percentage + '%';
+    document.getElementById('global-text').innerText = `${completedTasks} de ${totalTasks} atividades`;
+
     let fullDays = 0;
     for (let i = 1; i <= 25; i++) {
         let tasksDoneInDay = 0;
-        tasksList.forEach(task => {
-            if (data[`d${i}-${task.id}`]) tasksDoneInDay++;
-        });
-        if (tasksDoneInDay === 5) fullDays++;
+        tasksList.forEach(t => { if (data[`d${i}-${t.id}`]) tasksDoneInDay++; });
+        if (tasksDoneInDay === tasksList.length) fullDays++;
     }
+    
     document.getElementById('days-completed').innerText = fullDays;
 }
 
 function updateCardCounterAndStyle(day, data) {
+    const counterEl = document.getElementById(`counter-d${day}`);
+    if (!counterEl) return;
+
     let count = 0;
-    tasksList.forEach(task => {
-        if(data[`d${day}-${task.id}`]) count++;
-    });
-    
-    document.getElementById(`counter-d${day}`).innerText = `${count}/5`;
+    tasksList.forEach(t => { if(data[`d${day}-${t.id}`]) count++; });
+    counterEl.innerText = `${count}/${tasksList.length}`;
     
     const card = document.getElementById(`card-d${day}`);
-    if (count === 5) {
-        card.classList.add('completed');
-    } else {
-        card.classList.remove('completed');
-    }
+    if(card) { count === tasksList.length ? card.classList.add('completed') : card.classList.remove('completed'); }
 }
 
-function renderInterface() {
+function renderJejumInterface() {
+    const container = document.getElementById('weeks-container');
+    if (!container) return; 
+
     const state = loadProgress();
-    
-    // Sortear Versículo Diário
-    const randomVerse = verses[Math.floor(Math.random() * verses.length)];
-    document.getElementById('daily-verse').innerText = `"${randomVerse.text}"`;
-    document.getElementById('daily-ref').innerText = `— ${randomVerse.ref}`;
+    const verses = [ "Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos.", "Tudo posso naquele que me fortalece." ];
+    document.getElementById('daily-verse').innerText = `"${verses[0]}"`;
 
     weeksConfig.forEach((week, index) => {
         const weekBtn = document.createElement('button');
-        weekBtn.className = 'week-btn';
+        weekBtn.className = `week-btn ${index === 0 ? 'active' : ''}`;
         weekBtn.innerHTML = `${week.title} <span class="week-icon">▼</span>`;
         
         const weekContent = document.createElement('div');
-        weekContent.className = 'week-content';
+        weekContent.className = `week-content ${index === 0 ? 'active' : ''}`;
         
-        if(index === 0) {
-            weekBtn.classList.add('active');
-            weekContent.classList.add('active');
-        }
-
         weekBtn.addEventListener('click', () => {
             weekBtn.classList.toggle('active');
             weekContent.classList.toggle('active');
@@ -110,40 +92,18 @@ function renderInterface() {
             card.className = 'day-card';
             card.id = `card-d${i}`;
             
-            let tasksHtml = '';
-            tasksList.forEach(task => {
-                const taskId = `d${i}-${task.id}`;
-                const isChecked = state[taskId] ? 'checked' : '';
-                
-                tasksHtml += `
-                    <label class="task-label">
-                        <input type="checkbox" id="${taskId}" ${isChecked}>
-                        <span class="task-text">${task.name}</span>
-                    </label>
-                `;
-            });
+            let tasksHtml = tasksList.map(t => {
+                const taskId = `d${i}-${t.id}`;
+                return `<label class="task-label"><input type="checkbox" id="${taskId}" ${state[taskId] ? 'checked' : ''}><span class="task-text">${t.name}</span></label>`;
+            }).join('');
 
-            card.innerHTML = `
-                <div class="day-header">
-                    <span>DIA ${i}</span>
-                    <span class="progress-indicator" id="counter-d${i}">0/5</span>
-                </div>
-                <div class="tasks-grid">
-                    ${tasksHtml}
-                </div>
-            `;
-            
+            card.innerHTML = `<div class="day-header"><span>DIA ${i}</span><span class="progress-indicator" id="counter-d${i}">0/${tasksList.length}</span></div><div class="tasks-grid">${tasksHtml}</div>`;
             weekContent.appendChild(card);
         }
-
         container.appendChild(weekBtn);
         container.appendChild(weekContent);
-        
-        for (let i = week.startDay; i <= week.endDay; i++) {
-            updateCardCounterAndStyle(i, state);
-        }
+        for (let i = week.startDay; i <= week.endDay; i++) updateCardCounterAndStyle(i, state);
     });
-
     updateDashboard(state);
 }
 
@@ -152,31 +112,115 @@ document.addEventListener('change', (e) => {
         const state = loadProgress();
         state[e.target.id] = e.target.checked;
         saveProgress(state);
+        const match = e.target.id.match(/d(\d+)-/);
+        if (match) updateCardCounterAndStyle(match[1], state);
+    }
+});
+
+/* ================= LÓGICA DO MODAL DE EDIÇÃO DE METAS ================= */
+const editModal = document.getElementById('edit-modal');
+const btnEditTasks = document.getElementById('btn-edit-tasks');
+const btnCloseEditModal = document.getElementById('close-edit-modal');
+const btnSaveEdit = document.getElementById('btn-save-edit');
+const editTaskList = document.getElementById('edit-task-list');
+const newTaskInput = document.getElementById('new-task-input');
+const btnAddTask = document.getElementById('btn-add-task');
+const btnRestoreDefaults = document.getElementById('btn-restore-defaults');
+
+let tempTasksList = [];
+
+function renderEditTasks() {
+    if (!editTaskList) return;
+    editTaskList.innerHTML = '';
+    tempTasksList.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'edit-task-item';
+        li.innerHTML = `
+            <span>${task.name}</span>
+            <span class="delete-task-btn" onclick="removeTempTask(${index})">X</span>
+        `;
+        editTaskList.appendChild(li);
+    });
+}
+
+
+window.removeTempTask = function(index) {
+    tempTasksList.splice(index, 1);
+    renderEditTasks();
+};
+
+// Botão Restaurar Padrões
+if (btnRestoreDefaults) {
+    btnRestoreDefaults.addEventListener('click', () => {
+        const confirmRestore = confirm("Tem certeza que deseja apagar suas metas personalizadas e voltar para as 5 originais do congresso?");
         
-        const dayMatch = e.target.id.match(/d(\d+)-/);
-        if (dayMatch) {
-            updateCardCounterAndStyle(dayMatch[1], state);
+        if (confirmRestore) {
+            tempTasksList = JSON.parse(JSON.stringify(defaultTasks));
+            renderEditTasks();
         }
-    }
-});
+    });
+}
 
-// Ação do Botão de Compartilhar
-document.getElementById('btn-share').addEventListener('click', () => {
-    const state = loadProgress();
-    const completedTasks = Object.keys(state).filter(key => state[key] === true).length;
-    const percentage = Math.round((completedTasks / totalTasks) * 100);
-    
-    let fullDays = 0;
-    for (let i = 1; i <= 25; i++) {
-        let tasksDoneInDay = 0;
-        tasksList.forEach(task => { if (state[`d${i}-${task.id}`]) tasksDoneInDay++; });
-        if (tasksDoneInDay === 5) fullDays++;
-    }
-    
-    const text = `🔥 Já completei *${percentage}%* do Jejum com Propósito! Foram *${fullDays} dias* completos. Bora buscar a Deus juntos! 🙌`;
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-    window.open(whatsappUrl, '_blank');
-});
+if (btnAddTask) {
+    btnAddTask.addEventListener('click', () => {
+        const val = newTaskInput.value.trim();
+        if (val) {
+            const newId = 'custom_' + Date.now();
+            tempTasksList.push({ id: newId, name: val });
+            newTaskInput.value = '';
+            renderEditTasks();
+        }
+    });
+}
 
-// Iniciar a aplicação
-renderInterface();
+
+if (btnEditTasks) {
+    btnEditTasks.addEventListener('click', () => {
+        
+        tempTasksList = JSON.parse(JSON.stringify(tasksList)); 
+        renderEditTasks();
+        editModal.style.display = 'flex'; 
+    });
+}
+
+if (btnCloseEditModal) {
+    btnCloseEditModal.addEventListener('click', () => {
+        editModal.style.display = 'none'; 
+    });
+}
+
+if (btnSaveEdit) {
+    btnSaveEdit.addEventListener('click', () => {
+        tasksList = tempTasksList; 
+        localStorage.setItem('jejumCustomTasks', JSON.stringify(tasksList));
+        editModal.style.display = 'none'; 
+        location.reload(); 
+    });
+}
+
+/* ================= COMPARTILHAR NO WHATSAPP ================= */
+const btnShare = document.getElementById('btn-share');
+if (btnShare) {
+    btnShare.addEventListener('click', () => {
+        const state = loadProgress();
+        let completedTasks = 0;
+        for (let i = 1; i <= 25; i++) {
+            tasksList.forEach(t => { if (state[`d${i}-${t.id}`]) completedTasks++; });
+        }
+        const percentage = Math.round((completedTasks / totalTasks) * 100) || 0;
+        
+        let fullDays = 0;
+        for (let i = 1; i <= 25; i++) {
+            let tasksDoneInDay = 0;
+            tasksList.forEach(task => { if (state[`d${i}-${task.id}`]) tasksDoneInDay++; });
+            if (tasksDoneInDay === tasksList.length) fullDays++;
+        }
+        
+        const text = `🔥 Já completei *${percentage}%* do Jejum com Propósito! Foram *${fullDays} dias* completos. Bora buscar a Deus juntos! 🙌`;
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+        window.open(whatsappUrl, '_blank');
+    });
+}
+
+/* Inicializa a página */
+renderJejumInterface();
