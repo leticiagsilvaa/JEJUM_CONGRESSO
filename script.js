@@ -149,7 +149,6 @@ window.removeTempTask = function(index) {
     renderEditTasks();
 };
 
-// Botão Restaurar Padrões
 if (btnRestoreDefaults) {
     btnRestoreDefaults.addEventListener('click', () => {
         const confirmRestore = confirm("Tem certeza que deseja apagar suas metas personalizadas e voltar para as 5 originais do congresso?");
