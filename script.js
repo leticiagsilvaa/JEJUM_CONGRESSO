@@ -71,9 +71,32 @@ function renderJejumInterface() {
     if (!container) return; 
 
     const state = loadProgress();
-    const verses = [ "Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos.", "Tudo posso naquele que me fortalece." ];
-    document.getElementById('daily-verse').innerText = `"${verses[0]}"`;
+    
+    // Banco de Versículos
+    const verses = [
+        { text: "Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos.", ref: "Provérbios 16:3" },
+        { text: "Busquem, pois, em primeiro lugar o Reino de Deus e a sua justiça, e todas essas coisas lhes serão acrescentadas.", ref: "Mateus 6:33" },
+        { text: "Tudo posso naquele que me fortalece.", ref: "Filipenses 4:13" },
+        { text: "Deleite-se no Senhor, e ele atenderá aos desejos do seu coração.", ref: "Salmos 37:4" },
+        { text: "Seja forte e corajoso! Não tenha medo nem fique apavorado, pois o Senhor, o seu Deus, estará com você por onde andar.", ref: "Josué 1:9" },
+        { text: "Arrependam-se, pois, e voltem-se para Deus, para que os seus pecados sejam apagados, para que venham tempos de refrigério da parte do Senhor.", ref: "Atos 3:19" },
+        { text: "Cria em mim, ó Deus, um coração puro, e renova dentro de mim um espírito inabalável.", ref: "Salmo 51:10" },
+        { text: "Agora, pois, diz o Senhor, voltem-se para mim de todo o coração, com jejum, choro e pranto. Rasguem o coração, e não as vestes.", ref: "Joel 2:12-13" },
+        { text: "Por isso é que foi dito: Desperta, ó tu que dormes, levanta-te dentre os mortos e Cristo resplandecerá sobre ti.", ref: "Efésios 5:14" },
+        { text: "Se o meu povo, que se chama pelo meu nome, se humilhar e orar, buscar a minha face e se afastar dos seus maus caminhos, dos céus o ouvirei, perdoarei o seu pecado e curarei a sua terra.", ref: "2 Crônicas 7:14" },
+        { text: "O Senhor é a minha força e o meu escudo; nele o meu coração confia.", ref: "Salmos 28:7" }
+    ];
 
+    // Sorteia um versículo aleatório
+    const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+    
+    // Atualiza o HTML
+    const verseEl = document.getElementById('daily-verse');
+    const refEl = document.getElementById('daily-ref');
+    if (verseEl) verseEl.innerText = `"${randomVerse.text}"`;
+    if (refEl) refEl.innerText = `— ${randomVerse.ref}`;
+
+    // Monta as semanas (agora sem duplicar!)
     weeksConfig.forEach((week, index) => {
         const weekBtn = document.createElement('button');
         weekBtn.className = `week-btn ${index === 0 ? 'active' : ''}`;
